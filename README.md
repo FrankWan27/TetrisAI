@@ -1,5 +1,5 @@
 # TetrisAI
-using a genetic machine learning algorithm to teach an AI how to play tetris
+Currently just a playable bare-bones Tetris game, with the AI still in development.
 
 ## Installation
 
