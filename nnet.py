@@ -17,8 +17,8 @@ class Nnet:
     def __init__(self, species, filename = None):
         self.numInputs = species.value[0]
         self.numHidden = species.value[1]
-        self.numHidden2 = species.value[2]
-        self.numOutputs = species.value[3]
+        #self.numHidden2 = species.value[2]
+        self.numOutputs = species.value[2]
         
         if(filename != None):
             self.loadBest(filename)
@@ -31,8 +31,8 @@ class Nnet:
         #includes bias
 
         self.wInputToHidden = np.random.uniform(low, high, size=(self.numHidden, self.numInputs + 1))
-        self.wHiddenToHidden = np.random.uniform(low, high, size=(self.numHidden2, self.numHidden + 1))
-        self.wHiddenToOutput = np.random.uniform(low, high, size=(self.numOutputs, self.numHidden2 + 1))  
+        #self.wHiddenToHidden = np.random.uniform(low, high, size=(self.numHidden2, self.numHidden + 1))
+        self.wHiddenToOutput = np.random.uniform(low, high, size=(self.numOutputs, self.numHidden + 1))  
 
 
 
@@ -56,11 +56,11 @@ class Nnet:
         #print(inputs)
         #print(self.wInputToHidden)
 
-        hiddenValues2 = addBias(relu(np.dot(self.wHiddenToHidden, hiddenValues)))
+        #hiddenValues2 = addBias(relu(np.dot(self.wHiddenToHidden, hiddenValues)))
 
 
 
-        outputs = sigmoid(np.dot(self.wHiddenToOutput, hiddenValues2))
+        outputs = sigmoid(np.dot(self.wHiddenToOutput, hiddenValues))
         #outputs = sigmoid(np.dot(self.wManual, inputs)) 
 
         #print(outputs)
@@ -98,8 +98,8 @@ class Nnet:
     def loadBest(self, filename):
 
         self.wInputToHidden = np.zeros((self.numHidden, self.numInputs + 1))
-        self.wHiddenToHidden = np.zeros((self.numHidden2, self.numHidden + 1))
-        self.wHiddenToOutput = np.zeros((self.numOutputs, self.numHidden2 + 1))  
+        #self.wHiddenToHidden = np.zeros((self.numHidden2, self.numHidden + 1))
+        self.wHiddenToOutput = np.zeros((self.numOutputs, self.numHidden + 1))  
 
 
         f = open(filename, "r")

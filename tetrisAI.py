@@ -28,10 +28,10 @@ grid = np.zeros((10, 20))
 #https://tetris.wiki/Super_Rotation_System
 #changed to be row based and 4x4
 
-speeds = [FPS * 8, FPS * 2, 1]
-speedSetting = 2
+speeds = [FPS * 8, FPS * 4, FPS * 2, 1]
+speedSetting = 1
 held = ''
-player = False
+player = True
 holdUsed = False
 currentShape = Shape()
 upcoming = []
@@ -85,7 +85,7 @@ def startGame():
 
         #Draw everything to screen
         gameDisplay.blit(bg, (0, 0))
-        showDebug(dt, gameTime)
+        #showDebug(dt, gameTime)
         showScore()
         showNext()
         showHeld()
