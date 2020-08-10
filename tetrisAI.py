@@ -23,15 +23,10 @@ else:
 #setup global vars
 gameDisplay = ''
 grid = np.zeros((10, 20))
-
-#official shape and orientation
-#https://tetris.wiki/Super_Rotation_System
-#changed to be row based and 4x4
-
-speeds = [FPS * 8, FPS * 4, FPS * 2, 1]
-speedSetting = 1
+speeds = [FPS * 64, FPS * 8, FPS * 4, FPS * 2, 1]
+speedSetting = 2
 held = ''
-player = True
+player = False
 holdUsed = False
 currentShape = Shape()
 upcoming = []
@@ -70,7 +65,7 @@ def startGame():
         runloop = handleInput()
         #Get AI's best move
         if not player:
-            doBestMove(getBestMove())
+            doBestMove(getAllPossibleMoves())
 
         dt = clock.tick(FPS)
         gameTime += dt
@@ -85,7 +80,7 @@ def startGame():
 
         #Draw everything to screen
         gameDisplay.blit(bg, (0, 0))
-        #showDebug(dt, gameTime)
+        showDebug(dt, gameTime)
         showScore()
         showNext()
         showHeld()
@@ -106,7 +101,7 @@ def resetGame():
 
     grid = np.zeros((10, 20))
     held = ''
-    upcoming = generateUpcoming()
+    upcoming = generateBag()
     score = 0
 
 def showLabel(data, text, x, y):
@@ -126,7 +121,6 @@ def showDebug(dt, gameTime):
 
     yOffset += 628
     yOffset = showLabel(int(suisei.genAvg), 'Current Gen Average: ', xOffset, yOffset)
-    yOffset = showLabel(int(suisei.deltaAvg), 'Change From Last Gen: ', xOffset, yOffset)
     yOffset = showLabel(suisei.highscore, 'Highscore (This Gen): ', xOffset, yOffset)
     yOffset = showLabel(suisei.highestScore, 'Highest Score So Far: ', xOffset, yOffset)
 
@@ -367,7 +361,7 @@ def rotateShape(currentShape, rotations):
         shape = zeros
     return shape
 
-#Move currentShape right 1 tile
+#Move currentShape down 1 tile
 def moveDown():
     global currentShape
     global score
@@ -416,7 +410,6 @@ def fastDrop():
     while not checkCollision(currentShape):
         currentShape.y += 1
         score += 2
-
     
     currentShape.y -= 1
     score -= 2
@@ -446,10 +439,12 @@ def getNextShape():
     ticker = 0
 
     tempShape = Shape(upcoming[0])
-    upcoming[0] = upcoming[1]
-    upcoming[1] = upcoming[2]
-    upcoming[2] = upcoming[3]
-    upcoming[3] = randomShape()
+    upcoming.pop(0)
+
+    if(len(upcoming) < 4):
+        tempList = generateBag()
+        for i in tempList:
+            upcoming.append(i)
 
     #move shape to center of grid
     tempShape.x = (int)(len(grid) / 2 - len(tempShape.shape) / 2)
@@ -459,12 +454,11 @@ def getNextShape():
 def randomShape():
     return random.choice(list(shapes.keys()))
 
-#Generate 4 upcoming blocks
-def generateUpcoming():
-    tempArr = []
-    for i in range(4):
-        tempArr.append(randomShape())
-    return tempArr
+#Generate 7 different upcoming blocks
+def generateBag():
+    tempList = list(shapes.keys()) 
+    np.random.shuffle(tempList)
+    return tempList
 
 #Clear rows that are matched
 def clearRows():
@@ -515,54 +509,153 @@ def clearRows():
 #Current player or Nnet lost
 def handleLoss():    
     #update fitness of current Nnet
-    suisei.setFitness(score)
+    suisei.setFitness(score) 
     suisei.moveToNextNnet()
     resetGame()
 
-
-
-def getNeuralInput():
+def getAllPossibleMoves():
+    global currentShape
+    moveList = []
+    removeShape()
     
+    currentX = currentShape.x
+    currentY = currentShape.y
 
-    return inputs
+    for rot in range(4):
+
+        for col in range(-5, 6):
+            currentShape.x = currentX + col
+            currentShape.y = 0
+            if checkCollision(currentShape):
+                continue
+
+            while not checkCollision(currentShape):
+                currentShape.y += 1
+            
+            currentShape.y -= 1
+            if not checkCollision(currentShape):
+
+                addShape()
+                rating = getRating()
+                moveList.append((rating, rot, col))
+                removeShape()
+
+        currentShape.shape = rotateShape(currentShape, 1)
 
 
-def doBestMove(bestMove):
-    # 0 : moveLeft
-    # 1 : moveRight
-    # 2 : rotateLeft
-    # 3 : rotateRight
-    # 4 : fastDrop
-    # 5 : slowDrop
-    # 6 : holdBlock
-    # 7 : doNothing
 
-    if bestMove == 0:
-        #print('Move Left')
-        moveLeft()
-    elif bestMove == 1:
-        #print('Move Right')
-        moveRight()
-    elif bestMove == 2:
-        #print('Rotate Left')
-        rotateLeft()
-    elif bestMove == 3:
-        #print('Rotate Right')
-        rotateRight()
-    elif bestMove == 4:
-        #print('Fast Drop')
-        fastDrop()
-    elif bestMove == 5:
-        #print('Slow Drop')
-        moveDown()
-    elif bestMove == 6:
-        #print('Hold Block')
-        hold()
-    else:
+    currentShape.x = currentX
+    currentShape.y = currentY
+
+    addShape()
+    return moveList
+
+def getRating():
+    peaks = getPeaks()
+    inputs = []
+
+    inputs.append(getRowsCleared())
+    inputs.append(getRoughness(peaks))
+    inputs.append(getHeight(peaks) ** 1.5)
+    inputs.append(getRange(peaks))
+    inputs.append(getCumulative(peaks))
+    inputs.append(getHoles())
+    return suisei.getBestMove(inputs)
+
+def getRowsCleared():
+    rows = []
+    for y in reversed(range(len(grid[0]))):
+        full = True
+        for x in range(len(grid)):
+            if grid[x][y] == 0:
+                full = False
+        if full:
+            rows.append(y)
+
+    scores = [0, 100, 400, 1500, 3200]
+    return scores[len(rows)]
+
+#Return tallest block in each col
+def getPeaks():
+    peaks = np.zeros(10)
+    for col in range(10):
+        for row in range(20):
+            if grid[col][row] != 0:
+                peaks[col] = 20 - row;
+                break;
+
+    return peaks;
+
+#Return total difference in heights
+def getRoughness(peaks):
+    roughness = 0
+
+    for i in range(9):
+        roughness += abs(peaks[i] - peaks[i + 1])
+
+    return roughness
+
+#Return tallest peak
+def getHeight(peaks):
+    return np.max(peaks)
+
+#Return range of heights
+def getRange(peaks):
+    return np.max(peaks) - np.min(peaks)
+
+#Return cumulative height of all columns
+def getCumulative(peaks):
+    total = 0
+    for peak in peaks:
+        total += peak
+
+    return total
+
+#Return total holes (empty squares under blocks)
+def getHoles():
+    holes = 0
+    for col in range(10):
+        covered = False
+        for row in range(20):
+            if grid[col][row] != 0 and not covered:
+                covered = True
+            elif grid[col][row] == 0 and covered:
+                holes += 1
+
+    return holes
+
+
+#TODO: Add getWells? (kinda covered by roughness)
+
+
+def doBestMove(moveList):
+    if len(moveList) == 0:
         return
-        #print('Doing Nothing')
 
-        
+    highestRating = -1000000
+    moveIndices = []
 
+    for i in range(len(moveList)):
+        if moveList[i][0] > highestRating:
+            highestRating = moveList[i][0]
+            moveIndices = []
+            moveIndices.append(i)
+        elif moveList[i][0] == highestRating:
+            moveIndices.append(i)
 
+    moveIndex = np.random.choice(moveIndices)
+    rotation = moveList[moveIndex][1]
+    translation = moveList[moveIndex][2]
 
+    for i in range(rotation):
+        rotateRight()
+
+    if translation > 0:
+        for i in range(translation):
+            moveRight()
+
+    if translation < 0:
+        for i in range(-translation):
+            moveLeft()
+
+    fastDrop()

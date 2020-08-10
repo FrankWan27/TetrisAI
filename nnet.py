@@ -17,8 +17,8 @@ class Nnet:
     def __init__(self, species, filename = None):
         self.numInputs = species.value[0]
         self.numHidden = species.value[1]
-        #self.numHidden2 = species.value[2]
-        self.numOutputs = species.value[2]
+        self.numHidden2 = species.value[2]
+        self.numOutputs = species.value[3]
         
         if(filename != None):
             self.loadBest(filename)
@@ -31,8 +31,8 @@ class Nnet:
         #includes bias
 
         self.wInputToHidden = np.random.uniform(low, high, size=(self.numHidden, self.numInputs + 1))
-        #self.wHiddenToHidden = np.random.uniform(low, high, size=(self.numHidden2, self.numHidden + 1))
-        self.wHiddenToOutput = np.random.uniform(low, high, size=(self.numOutputs, self.numHidden + 1))  
+        self.wHiddenToHidden = np.random.uniform(low, high, size=(self.numHidden2, self.numHidden + 1))
+        self.wHiddenToOutput = np.random.uniform(low, high, size=(self.numOutputs, self.numHidden2 + 1))  
 
 
 
@@ -47,8 +47,8 @@ class Nnet:
          #   ])
 
 
-    #Return outputs given an input 
-    def getOutputs(self, inputList):
+    #Return output given an input 
+    def getOutput(self, inputList):
 
         inputs = addBias(np.array(inputList, ndmin=2).T)
 
@@ -56,16 +56,16 @@ class Nnet:
         #print(inputs)
         #print(self.wInputToHidden)
 
-        #hiddenValues2 = addBias(relu(np.dot(self.wHiddenToHidden, hiddenValues)))
+        hiddenValues2 = addBias(relu(np.dot(self.wHiddenToHidden, hiddenValues)))
 
 
 
-        outputs = sigmoid(np.dot(self.wHiddenToOutput, hiddenValues))
+        outputs = sigmoid(np.dot(self.wHiddenToOutput, hiddenValues2))
         #outputs = sigmoid(np.dot(self.wManual, inputs)) 
 
-        #print(outputs)
+        #print(outputs, flush=True)
         
-        return outputs
+        return outputs[0][0]
 
     def getHidden(self, inputList):
         inputs = addBias(np.array(inputList, ndmin=2).T)
@@ -81,13 +81,6 @@ class Nnet:
         hiddenValues2 = sigmoid(np.dot(self.wHiddenToHidden, hiddenValues))
 
         return hiddenValues2
-
-        
-    def getOptimalOutput(self, inputList):
-        output = self.getOutputs(inputList)
-
-        #randomly choose tiebreaks
-        return np.random.choice(np.flatnonzero(np.isclose(output, output.max())))
 
 
     def makeChild(self, mom, dad):
@@ -153,7 +146,7 @@ class Nnets:
             self.evolve()
 
     def getBestMove(self, inputList):
-        return self.nnets[self.currentNnet].getOptimalOutput(inputList)
+        return self.nnets[self.currentNnet].getOutput(inputList)
 
     def setFitnessIndex(self, index, score):
         self.nnets[index].fitness = score

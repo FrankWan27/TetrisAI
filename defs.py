@@ -47,7 +47,7 @@ class Dir(Enum):
 
 #Stores input hidden and out nums
 class Species(Enum):
-	TETRIS = (223, 20, 8)
+	TETRIS = (6, 4, 2, 1)
 	SNAKE = (24, 20, 12, 4)
 
 #Converts a 2D Array to a 1D list
