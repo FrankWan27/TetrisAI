@@ -2,7 +2,7 @@ import numpy as np
 import pygame
 from defs import *
 import copy 
-
+from datetime import datetime
 
 
 class Nnet:
@@ -31,8 +31,8 @@ class Nnet:
         #includes bias
 
         self.wInputToHidden = np.random.uniform(low, high, size=(self.numHidden, self.numInputs + 1))
-        self.wHiddenToHidden = np.random.uniform(low, high, size=(self.numHidden2, self.numHidden + 1))
-        self.wHiddenToOutput = np.random.uniform(low, high, size=(self.numOutputs, self.numHidden2 + 1))  
+        self.wHiddenToHidden = np.random.uniform(1, high, size=(self.numHidden2, self.numHidden + 1))
+        self.wHiddenToOutput = np.random.uniform(1, high, size=(self.numOutputs, self.numHidden2 + 1))  
 
 
 
@@ -52,7 +52,7 @@ class Nnet:
 
         inputs = addBias(np.array(inputList, ndmin=2).T)
 
-        hiddenValues = addBias(relu(np.dot(self.wInputToHidden, inputs)))
+        hiddenValues = addBias(np.dot(self.wInputToHidden, inputs))
         #print(inputs)
         #print(self.wInputToHidden)
 
@@ -91,15 +91,15 @@ class Nnet:
     def loadBest(self, filename):
 
         self.wInputToHidden = np.zeros((self.numHidden, self.numInputs + 1))
-        #self.wHiddenToHidden = np.zeros((self.numHidden2, self.numHidden + 1))
-        self.wHiddenToOutput = np.zeros((self.numOutputs, self.numHidden + 1))  
+        self.wHiddenToHidden = np.zeros((self.numHidden2, self.numHidden + 1))
+        self.wHiddenToOutput = np.zeros((self.numOutputs, self.numHidden2 + 1))  
 
 
         f = open(filename, "r")
 
         for x in range(self.wInputToHidden.shape[0]):
             for y in range(self.wInputToHidden.shape[1]):
-                self.wInputToHidden [x][y] = float(f.readline())
+                self.wInputToHidden[x][y] = float(f.readline())
         
         for x in range(self.wHiddenToHidden.shape[0]):
             for y in range(self.wHiddenToHidden.shape[1]):
@@ -139,6 +139,8 @@ class Nnets:
     def createPop(self, filename = None):
         for i in range(self.popSize):
             self.nnets.append(Nnet(self.species, filename))
+            #if filename != None:
+            #    filename = None
 
     def moveToNextNnet(self):
         self.currentNnet += 1
@@ -233,9 +235,12 @@ class Nnets:
 
     def writeBest(self, filename):
         if self.allTimeNnet is not None:
-            f = open(filename, "w")
+            currentDate = datetime.now().strftime(" %m-%d-%Y %Hh%Mm%Ss")
+
+            f = open("./nnets/" + filename + currentDate + ".txt", "w")
             wIH = arrayToString(self.allTimeNnet.wInputToHidden)
             wHH = arrayToString(self.allTimeNnet.wHiddenToHidden)
             wHO = arrayToString(self.allTimeNnet.wHiddenToOutput)
             f.write(wIH + wHH + wHO)
             f.close()
+            print("Saved to ./nnets/" + filename + currentDate + ".txt", flush=True)

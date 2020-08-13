@@ -47,7 +47,7 @@ class Dir(Enum):
 
 #Stores input hidden and out nums
 class Species(Enum):
-	TETRIS = (6, 4, 2, 1)
+	TETRIS = (7, 4, 2, 1)
 	SNAKE = (24, 20, 12, 4)
 
 #Converts a 2D Array to a 1D list
@@ -95,12 +95,9 @@ def mutateArray(a, mutateChance):
         for y in range(cols):            
             if np.random.random() < mutateChance:
 
-                #a[x][y] += np.random.gaussian() * 2
-                a[x][y] = np.random.uniform(-1, 1)
-                if a[x][y] > 1:
-                    a[x][y] = 1
-                elif a[x][y] < -1:
-                    a[x][y] = -1
+                a[x][y] += np.random.normal() * 2
+                #a[x][y] = np.random.uniform(-1, 1)
+                #a[x][y] = np.clip(a[x][y], -1, 1)
 
     return a
 

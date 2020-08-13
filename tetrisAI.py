@@ -1,3 +1,5 @@
+#Me 220
+
 #import necessary libraries
 #pip install pygame
 import pygame
@@ -18,12 +20,10 @@ else:
     CurrentPath = os.path.dirname(__file__)
 
 
-
-
 #setup global vars
 gameDisplay = ''
 grid = np.zeros((10, 20))
-speeds = [FPS * 64, FPS * 8, FPS * 4, FPS * 2, 1]
+speeds = [FPS * 60, FPS * 8, FPS * 4, FPS * 2, 1]
 speedSetting = 2
 held = ''
 player = False
@@ -34,13 +34,15 @@ ticker = 0
 score = 0
 moves = 0
 lines = 0
+bestEfficiency = 0
 bestMove = None
 inputs = None
-
+clearToEnd = False
 suisei = Nnets(Species.TETRIS)
+debug = 0
 
 #Core game loop
-def startGame():
+def startGame(filename = None):
     global gameDisplay
     global ticker
     global currentShape
@@ -62,7 +64,7 @@ def startGame():
     gameTime = 0
     ticker = 0
 
-    suisei.createPop()
+    suisei.createPop(filename)
 
     while runloop:        
         #Break loop if we quit
@@ -71,7 +73,10 @@ def startGame():
         if not player and bestMove == None:
             bestMove = getBestMove(getAllPossibleMoves())
             doBestMove()
-            moves += 1
+            #moves += 1
+            #kill the current NNET at 1000 moves
+            if moves >= 1000:
+                handleLoss()
 
         dt = clock.tick(FPS)
         gameTime += dt
@@ -122,56 +127,67 @@ def showLabel(data, text, x, y):
 
 def showDebug(dt, gameTime):
     pygame.draw.rect(gameDisplay, (100, 100, 100), (600, 0, 600, 800))
+
     xOffset = 10
     yOffset = 2
     yOffset = showLabel(round(1000/dt, 2), 'FPS: ', xOffset, yOffset)
-    yOffset = showLabel(suisei.generation, 'Current Generation: ', xOffset, yOffset)
-    yOffset = showLabel(suisei.currentNnet, 'Current Nnet: ', xOffset, yOffset)
+    if debug == 2:
+        return
 
-    yOffset += 250
+    yOffset = showLabel(suisei.generation + 1, 'Current Generation: ', xOffset, yOffset)
+    yOffset = showLabel(suisei.currentNnet + 1, 'Current Nnet: ', xOffset, yOffset)
+    yOffset = showLabel(speedSetting%len(speeds), 'Current Speed: ', xOffset, yOffset)
+    yOffset += 240
     yOffset = showLabel(lines, 'Lines: ', xOffset, yOffset)
     yOffset = showLabel(moves, 'Moves: ', xOffset, yOffset)
-    yOffset += 358
+
+    yOffset = 760
     #yOffset = showLabel(int(suisei.genAvg), 'Current Gen Average: ', xOffset, yOffset)
     #yOffset = showLabel(suisei.highscore, 'Highscore (This Gen): ', xOffset, yOffset)
     xOffset = 610
-    yOffset = showLabel(suisei.highestScore, 'Highest Efficiency (Score / Moves) So Far: ', xOffset, yOffset)
+    yOffset = showLabel(suisei.highscore, 'Highest Efficiency (Score / Moves) So Far: ', xOffset, yOffset)
 
-    nnet = suisei.nnets[suisei.currentNnet];
-    hidden = nnet.getHidden(inputs)
-    hidden2 = nnet.getHidden2(inputs)
-    outputs = nnet.getOutput(inputs)
-    xOffset = 610
     yOffset = 10
     inputX = 100
     hiddenX = 233
     hidden2X = 366
     outputX = 500
    
+
     yOffset = showLabel(inputs[0], 'Line Clear Score: ', xOffset, yOffset)
     yOffset = showLabel(inputs[1], 'Roughness: ', xOffset, yOffset)
     yOffset = showLabel(inputs[2], 'Weighted Height: ', xOffset, yOffset)
     yOffset = showLabel(inputs[3], 'Range of Heights: ', xOffset, yOffset)
     yOffset = showLabel(inputs[4], 'Cumulative Height: ', xOffset, yOffset)
     yOffset = showLabel(inputs[5], 'Number of Holes: ', xOffset, yOffset)
+    yOffset = showLabel(inputs[6], 'Deepest Well: ', xOffset, yOffset)
 
     yOffset += 100
+
+    if debug == 1:
+        return
+
+    nnet = suisei.nnets[suisei.currentNnet];
+    hidden = nnet.getHidden(inputs)
+    hidden2 = nnet.getHidden2(inputs)
+    outputs = nnet.getOutput(inputs)
+
 
     #Draw lines
     for i in range(len(inputs)):
         for j in range(len(hidden)):
-            color = (nnet.wInputToHidden[j][i] + 1) / 2
+            color = np.clip((nnet.wInputToHidden[j][i] + 1) / 2, 0, 1)
             drawColor = ((int)(255 - color * 255), (int)(color * 255), 0)
             pygame.draw.line(gameDisplay, drawColor, (xOffset + inputX, yOffset + (int)(i / len(inputs) * 550)),(xOffset + hiddenX, 20 + yOffset + (int)(j / len(hidden) * 550)))
 
     for i in range(len(hidden)):
         for j in range(len(hidden2)):
-            color = (nnet.wHiddenToHidden[j][i] + 1) / 2
+            color = np.clip((nnet.wHiddenToHidden[j][i] + 1) / 2, 0, 1)
             drawColor = ((int)(255 - color * 255), (int)(color * 255), 0)
             pygame.draw.line(gameDisplay, drawColor, (xOffset + hiddenX, 20 + yOffset + (int)(i / len(hidden) * 550)),(xOffset + hidden2X, 80 + yOffset + (int)(j / len(hidden2) * 550)))
 
     for i in range(len(hidden2)):
-        color = (nnet.wHiddenToOutput[0][i] + 1) / 2
+        color = np.clip((nnet.wHiddenToOutput[0][i] + 1) / 2, 0, 1)
         drawColor = ((int)(255 - color * 255), (int)(color * 255), 0)
         pygame.draw.line(gameDisplay, drawColor, (xOffset + hidden2X, 80 + yOffset + (int)(i / len(hidden2) * 550)),(xOffset + outputX, yOffset + 220))
 
@@ -266,14 +282,22 @@ def createShape(shape):
 #Handle keyboard input
 def handleInput():
     global speedSetting
+    global debug
+    global player
     for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                suisei.writeBest("BestOnClose")
                 return False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_e:
                     speedSetting += 1
                 if event.key == pygame.K_q:
                     speedSetting -= 1
+                if event.key == pygame.K_b:
+                    debug += 1
+                    debug = debug % 3
+                if event.key == pygame.K_p:
+                    player = not player
                 if player:
                     if event.key == pygame.K_LEFT:
                         moveLeft()
@@ -291,6 +315,12 @@ def handleInput():
                         fastDrop()
                     if event.key == pygame.K_LSHIFT:
                         hold()
+                if not player:
+                    if event.key == pygame.K_w:
+                       suisei.writeBest("BestOnManual")
+                    if event.key == pygame.K_l:
+                        handleLoss()
+
 
 
     return True
@@ -461,7 +491,7 @@ def moveDown():
         if checkCollision(currentShape):
             handleLoss()
 
-    score += 1
+    #score += 1
     addShape()
 
 #Hold currentShape
@@ -494,10 +524,10 @@ def fastDrop():
     removeShape()
     while not checkCollision(currentShape):
         currentShape.y += 1
-        score += 2
+        #score += 2
     
     currentShape.y -= 1
-    score -= 2
+    #score -= 2
     addShape()
     clearRows()
     currentShape = getNextShape()
@@ -521,6 +551,8 @@ def checkCollision(currentShape):
 #Returns next upcoming shape
 def getNextShape():
     global ticker
+    global moves
+    moves += 1
     ticker = 0
 
     tempShape = Shape(upcoming[0])
@@ -580,7 +612,7 @@ def clearRows():
     elif len(rows) == 4:
         multiplier = 800
 
-    score += multiplier
+    score += multiplier * len(rows)
 
     #delete rows to clear
     for row in rows:
@@ -592,9 +624,11 @@ def clearRows():
     grid = np.hstack((tempRows, grid))
 
 #Current player or Nnet lost
-def handleLoss():    
+def handleLoss():  
+    global bestEfficiency  
     #update fitness of current Nnet
-    suisei.setFitness(score / moves) 
+    #bestEfficiency = np.max([bestEfficiency, (score / moves)])
+    suisei.setFitness((score / moves)) 
     suisei.moveToNextNnet()
     resetGame()
 
@@ -607,7 +641,10 @@ def getAllPossibleMoves():
     currentX = currentShape.x
     currentY = currentShape.y
 
-    for rot in range(4):
+    rots = 4
+    if currentShape.letter == 'O':
+        rots = 1
+    for rot in range(rots):
 
         for col in range(-5, 6):
             currentShape.x = currentX + col
@@ -622,9 +659,9 @@ def getAllPossibleMoves():
             if not checkCollision(currentShape):
 
                 addShape()
-                inputs = getInputs()
+                (inputs, priority) = getInputs(col)
                 rating = suisei.getBestMove(inputs)
-                moveList.append((rating, rot, col, False, inputs))
+                moveList.append((rating, rot, col, False, priority, inputs))
                 removeShape()
 
         currentShape.shape = rotateShape(currentShape, 1)
@@ -637,7 +674,11 @@ def getAllPossibleMoves():
     holdUsed = False
     removeShape()
 
-    for rot in range(4):
+    rots = 4
+    if currentShape.letter == 'O':
+        rots = 1
+
+    for rot in range(rots):
 
         for col in range(-5, 6):
             currentShape.x = currentX + col
@@ -652,9 +693,9 @@ def getAllPossibleMoves():
             if not checkCollision(currentShape):
 
                 addShape()
-                inputs = getInputs()
+                (inputs, priority) = getInputs(col)
                 rating = suisei.getBestMove(inputs)
-                moveList.append((rating, rot, col, True, inputs))
+                moveList.append((rating, rot, col, True, priority, inputs))
                 removeShape()
 
         currentShape.shape = rotateShape(currentShape, 1)
@@ -670,17 +711,45 @@ def getAllPossibleMoves():
     addShape()
     return moveList
 
-def getInputs():
+def getInputs(col):
+    global clearToEnd
     peaks = getPeaks()
     inputs = []
+    priority = True
 
-    inputs.append(getRowsCleared())
+    #If blocks are too high, play normally
+    height = getHeight(peaks)
+
+    #Avoid clearing 1 liners at all costs
+    rowsCleared = getRowsCleared()
+    if height < 8 and (rowsCleared == 0 or rowsCleared == 400):
+        priority = False
+
+    if height < 12 and rowsCleared == 0:
+        priority = False
+    
+    #Avoid making holes at all costs
+    holes = getHoles(peaks)
+    if holes > 0:
+        priority = False
+
+    if height >= 12:
+        clearToEnd = True
+
+    if holes == 0:
+        clearToEnd = False
+
+    if clearToEnd:
+        priority = True
+
+    inputs.append(rowsCleared)
     inputs.append(getRoughness(peaks))
-    inputs.append(getHeight(peaks) ** 1.5)
+    inputs.append(height ** 1.5)
     inputs.append(getRange(peaks))
     inputs.append(getCumulative(peaks))
-    inputs.append(getHoles())
-    return inputs
+    inputs.append(holes)
+    inputs.append(getWells())
+    return (inputs, priority)
 
 def getRowsCleared():
     rows = []
@@ -692,7 +761,8 @@ def getRowsCleared():
         if full:
             rows.append(y)
 
-    scores = [0, 100, 400, 1500, 3200]
+    scores = [-100, 0, 400, 1500, 3200]
+
     return scores[len(rows)]
 
 #Return tallest block in each col
@@ -732,17 +802,34 @@ def getCumulative(peaks):
     return total
 
 #Return total holes (empty squares under blocks)
-def getHoles():
+def getHoles(peaks):
     holes = 0
     for col in range(10):
-        covered = False
-        for row in range(20):
-            if grid[col][row] != 0 and not covered:
-                covered = True
-            elif grid[col][row] == 0 and covered:
+        for row in range((int)(20 - peaks[col]) + 1, 20):
+            if grid[col][row] == 0:
                 holes += 1
 
     return holes
+
+#Return deepest well
+def getWells():
+    deepest = 0
+    for col in range(10):
+        depth = 0
+        for row in range(20):
+            if grid[col][row] == 0:
+                if (col - 1 < 0 or grid[col - 1][row] != 0) and (col + 1 > 9 or grid[col + 1][row] != 0):
+                    depth += 1
+                else:
+                    if depth != 0:
+                        break
+            else:
+                break
+        if depth > deepest:
+#            deepestWell = col
+            deepest = depth
+    return deepest
+
 
 
 #TODO: Add getWells? (kinda covered by roughness)
@@ -753,23 +840,30 @@ def getBestMove(moveList):
     if len(moveList) == 0:
         return None
 
+    hasPrio = False
+    for move in moveList:
+        if move[4] == True:
+            hasPrio = True
+
     highestRating = -1000000
     moveIndices = []
 
     for i in range(len(moveList)):
-        if moveList[i][0] > highestRating:
-            highestRating = moveList[i][0]
-            moveIndices = []
-            moveIndices.append(i)
-        elif moveList[i][0] == highestRating:
-            moveIndices.append(i)
+        if hasPrio and moveList[i][4] or not hasPrio:
+            if moveList[i][0] > highestRating:
+                highestRating = moveList[i][0]
+                moveIndices = []
+                moveIndices.append(i)
+            elif moveList[i][0] == highestRating:
+                moveIndices.append(i)
 
     moveIndex = np.random.choice(moveIndices)
-    inputs = moveList[moveIndex][4]
+    inputs = moveList[moveIndex][5]
     return moveList[moveIndex]
 
 def doBestMove():
     global bestMove
+
     rotation = bestMove[1]
     translation = bestMove[2]
     swap = bestMove[3]
