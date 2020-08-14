@@ -73,6 +73,8 @@ The game can be played by the AI (AI Mode) or by a human (Human Mode). By defaul
 - Space - Fast drop current piece
 - P - Switch to AI Mode
 
+---
+
 ## Neural Network Structure
 
 This neural network is 7x4x2x1, with one input layer, two hidden layers, and one output layer. 
@@ -90,13 +92,19 @@ Each input is a heuristic extracted from the current board state + current poten
 
 ### Holes
 A hole is defined by an empty block that is covered by a piece above it. Below is an example of a board with 11 holes.
+
 ![11 Holes](https://github.com/FrankWan27/TetrisAI/blob/master/img/hole.png?raw=true)
+
 ### Wells
+
 A well is defined by a contiguous vertical column of empty blocks which is surrounded by solid blocks and is not covered. Below is an example of a well with depth of 3.
+
 ![3 Well](https://github.com/FrankWan27/TetrisAI/blob/master/img/well.png?raw=true)
 
 ### Decision Making
 Every time the player gets a new piece, the neural network will be given the 7 input heuristics after every possible move (including swapping with the held piece). Based on the neural network's weights, it will assign a rating to every possible move and perform the highest rated move. 
+
+---
 
 ## Optimizations
 The Tetris AI was quickly able to learn how to survive indefinitely by optimizing the roughness of the board and making one-line clears whenever possible. However, this approach is very score inefficient and so we tried many ways to optimize the strategy of the AI to score more points with fewer moves. 
