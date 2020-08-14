@@ -120,38 +120,6 @@ def addBias(a):
 
     return output
 
-import matplotlib
-   
-import matplotlib.pyplot as plt
-import matplotlib.backends.backend_agg as agg
-
-
-
-
-def plot(Xdata, Ydata, Ydata2):
-    matplotlib.use("Agg")
-    fig = plt.figure(figsize=[12, 3])
-    canvas = agg.FigureCanvasAgg(fig)
-
-    plt.plot(Xdata, Ydata, label="Highest Score")
-    plt.plot(Xdata, Ydata2, label="Average Score")
-    plt.ylim(bottom=0)
-    plt.xlim(left=0)
-    plt.xlabel('Generation')
-    plt.ylabel('Fitness Score')
-    plt.legend()
-    plt.tight_layout()
-
-    canvas.draw()
-    renderer = canvas.get_renderer()
-
-    raw_data = renderer.tostring_rgb()
-    size = canvas.get_width_height()
-    image = pygame.image.fromstring(raw_data, size, "RGB")
-    plt.close()
-
-    return image
-
 def arrayToString(a):
     rows = a.shape[0]
     cols = a.shape[1]

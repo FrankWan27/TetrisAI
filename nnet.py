@@ -31,8 +31,8 @@ class Nnet:
         #includes bias
 
         self.wInputToHidden = np.random.uniform(low, high, size=(self.numHidden, self.numInputs + 1))
-        self.wHiddenToHidden = np.random.uniform(1, high, size=(self.numHidden2, self.numHidden + 1))
-        self.wHiddenToOutput = np.random.uniform(1, high, size=(self.numOutputs, self.numHidden2 + 1))  
+        self.wHiddenToHidden = np.random.uniform(low, high, size=(self.numHidden2, self.numHidden + 1))
+        self.wHiddenToOutput = np.random.uniform(low, high, size=(self.numOutputs, self.numHidden2 + 1))  
 
 
 

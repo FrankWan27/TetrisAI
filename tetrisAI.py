@@ -39,6 +39,7 @@ bestEfficiency = 0
 bestMove = None
 inputs = None
 clearToEnd = False
+prio = True
 suisei = Nnets(Species.TETRIS)
 debug = 0
 
@@ -129,7 +130,7 @@ def showLabel(data, text, x, y):
 def showDebug(dt, gameTime):
     pygame.draw.rect(gameDisplay, (100, 100, 100), (600, 0, 600, 800))
 
-    xOffset = 5
+    xOffset = 10
     yOffset = 2
     yOffset = showLabel(round(1000/dt, 2), 'FPS: ', xOffset, yOffset)
     if debug == 2:
@@ -138,10 +139,16 @@ def showDebug(dt, gameTime):
     yOffset = showLabel(suisei.generation + 1, 'Current Generation: ', xOffset, yOffset)
     yOffset = showLabel(suisei.currentNnet + 1, 'Current Nnet: ', xOffset, yOffset)
     yOffset = showLabel(speedString[speedSetting%len(speeds)], 'Current Speed: ', xOffset, yOffset)
-    yOffset = showLabel(not player, 'AI Enabled: ', xOffset, yOffset)
-    yOffset += 230
+    yOffset = 100
+
+    if not player:
+        yOffset = showLabel('', 'AI Enabled! ', xOffset, yOffset)
+    if prio:
+        yOffset = showLabel('', 'Priority Enabled!', xOffset, yOffset)
+    yOffset = 320
     yOffset = showLabel(lines, 'Lines: ', xOffset, yOffset)
     yOffset = showLabel(moves, 'Moves: ', xOffset, yOffset)
+    yOffset = showLabel(round(score / (moves + 1), 1), 'Efficiency: ', xOffset, yOffset)
 
     yOffset = 760
     #yOffset = showLabel(int(suisei.genAvg), 'Current Gen Average: ', xOffset, yOffset)
@@ -286,6 +293,7 @@ def handleInput():
     global speedSetting
     global debug
     global player
+    global prio
     for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 suisei.writeBest("BestOnClose")
@@ -320,6 +328,8 @@ def handleInput():
                 if not player:
                     if event.key == pygame.K_w:
                        suisei.writeBest("BestOnManual")
+                    if event.key == pygame.K_r:
+                        prio = not prio
                     if event.key == pygame.K_l:
                         handleLoss()
 
@@ -630,7 +640,7 @@ def handleLoss():
     global bestEfficiency  
     #update fitness of current Nnet
     #bestEfficiency = np.max([bestEfficiency, (score / moves)])
-    suisei.setFitness((score / moves)) 
+    suisei.setFitness((score / (moves + 1)))
     suisei.moveToNextNnet()
     resetGame()
 
@@ -715,6 +725,7 @@ def getAllPossibleMoves():
 
 def getInputs(col):
     global clearToEnd
+    global prio
     peaks = getPeaks()
     inputs = []
     priority = True
@@ -742,6 +753,9 @@ def getInputs(col):
         clearToEnd = False
 
     if clearToEnd:
+        priority = True
+
+    if not prio:
         priority = True
 
     inputs.append(rowsCleared)
