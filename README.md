@@ -31,7 +31,12 @@ Following a standard set of Tetris rules:
 ---
 ## Installation
 
-### Clone
+If you're on windows, you can easily download and run the latest release here: https://github.com/FrankWan27/TetrisAI/releases/tag/v1.0
+
+Note: The standalone version does not support writing current neural network to a file.
+
+
+### Clone or Download
 
 - Clone this repo to your local machine using `git clone https://github.com/FrankWan27/TetrisAI.git`
 
@@ -54,14 +59,15 @@ To start running the Tetris game, simply run main.py in the parent directory
 ---
 
 ## Controls
-The game can be played by the AI (AI Mode) or by a human (Human Mode). By default, the game starts in AI mode. Upon closing the game by clicking the X button, the best performing snake's neural network will be written to the file "BestOnClose.txt"
+The game can be played by the AI (AI Mode) or by a human (Human Mode). By default, the game starts in AI mode with debug and priority mode turned on. Upon closing the game by clicking the X button, the best performing snake's neural network will be written to the file "BestOnClose.txt"
 
 ### AI Mode
 
-- Q/E - Increase/Decrease the speed setting (Slow, Normal, Fast, Fastest)
+- Q/E - Increase/Decrease the speed setting (Slowest, Slow, Normal, Fast, Fastest)
 - L - Immediately kill the current neural network
 - W - Write best performing Tetris neural network to the file "BestOnManual.txt"
-- B - Show/Hide debug info
+- B - Toggle debug info
+- R - Toggle priority mode
 - P - Switch to Human Mode
 
 ### Human Mode
