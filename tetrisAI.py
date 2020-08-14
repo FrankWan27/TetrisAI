@@ -25,6 +25,7 @@ gameDisplay = ''
 grid = np.zeros((10, 20))
 speeds = [FPS * 60, FPS * 8, FPS * 4, FPS * 2, 1]
 speedSetting = 2
+speedString = ['Slowest', 'Slow', 'Normal', 'Fast', 'Fastest']
 held = ''
 player = False
 holdUsed = False
@@ -136,7 +137,7 @@ def showDebug(dt, gameTime):
 
     yOffset = showLabel(suisei.generation + 1, 'Current Generation: ', xOffset, yOffset)
     yOffset = showLabel(suisei.currentNnet + 1, 'Current Nnet: ', xOffset, yOffset)
-    yOffset = showLabel(speedSetting%len(speeds), 'Current Speed: ', xOffset, yOffset)
+    yOffset = showLabel(speedString[speedSetting%len(speeds)], 'Current Speed: ', xOffset, yOffset)
     yOffset += 240
     yOffset = showLabel(lines, 'Lines: ', xOffset, yOffset)
     yOffset = showLabel(moves, 'Moves: ', xOffset, yOffset)
