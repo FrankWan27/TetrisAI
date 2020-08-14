@@ -129,7 +129,7 @@ def showLabel(data, text, x, y):
 def showDebug(dt, gameTime):
     pygame.draw.rect(gameDisplay, (100, 100, 100), (600, 0, 600, 800))
 
-    xOffset = 10
+    xOffset = 5
     yOffset = 2
     yOffset = showLabel(round(1000/dt, 2), 'FPS: ', xOffset, yOffset)
     if debug == 2:
@@ -138,7 +138,8 @@ def showDebug(dt, gameTime):
     yOffset = showLabel(suisei.generation + 1, 'Current Generation: ', xOffset, yOffset)
     yOffset = showLabel(suisei.currentNnet + 1, 'Current Nnet: ', xOffset, yOffset)
     yOffset = showLabel(speedString[speedSetting%len(speeds)], 'Current Speed: ', xOffset, yOffset)
-    yOffset += 240
+    yOffset = showLabel(not player, 'AI Enabled: ', xOffset, yOffset)
+    yOffset += 230
     yOffset = showLabel(lines, 'Lines: ', xOffset, yOffset)
     yOffset = showLabel(moves, 'Moves: ', xOffset, yOffset)
 
